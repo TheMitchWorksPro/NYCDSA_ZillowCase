@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# common files to exclude (mad temp, R, etc.)
+*.RData
+.DS_Store
+
 # C extensions
 *.so
 
