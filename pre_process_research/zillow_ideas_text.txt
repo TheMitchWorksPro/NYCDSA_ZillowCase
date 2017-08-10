@@ -1,0 +1,60 @@
+
+######################################
+GOAL OF PROJECT
+######################################
+
+In this competition, Zillow is asking you to predict the log-error between their Zestimate and the actual sale price, given all the features of a home. 
+The log error is defined as
+
+logerror=log(Zestimate)−log(SalePrice)
+
+You are asked to predict 6 time points for all properties: October 2016 (201610), November 2016 (201611), December 2016 (201612), October 2017 (201710), November 2017 (201711), and December 2017 (201712).  Data is from 2016 for these categories:  (Los Angeles, Orange and Ventura, California).
+
+#######################################
+Helpful Background Research and Links
+#######################################
+
+## EDA Coding example as Markdown
+https://www.kaggle.com/philippsp/exploratory-analysis-zillow/code
+
+## workflow coding example (regression)
+https://www.kaggle.com/monkeyorman/simple-linear-regression-in-r-0-0648835/code
+
+
+###################################
+Fix Properties (and Data) in Time?
+###################################
+
+Fields that relate:
+-------------------
+
+Listed In Data Dictionary:
+1) yearbuilt
+2) assessmentyear - year tax assessment is from
+3) taxdelinquencyflag - Property taxes for this parcel are past due as of 2015
+4) taxdelinquencyyear - Year for which the unpaid propert taxes were due 
+
+Other Time-Based Fields:
+------------------------
+train_2016_v2.csv:
+  transactiondate
+
+#################################################
+Location
+#################################################
+regionzipid <> true zip code (has been obfuscated)
+
+#################################################
+Initial Thoughts and ideas
+#################################################
+
+1) cor plot of all fields (w/o missing values) to eliminate fields that seem to have no relation to target variable
+2) initial testing done with simple models on fields w/o missing values again looking for things that seem to have no correlation to target
+3) variables with high correlation could then become areas of focus for cleanup and the final model
+4) Tom suggests doing a baseline test where we expect zestimate to be perfect, submit and then see how to adjust?
+
+#################################
+Missing Columns
+#################################
+Mitch working on: 19 - 36 except:  22-26
+

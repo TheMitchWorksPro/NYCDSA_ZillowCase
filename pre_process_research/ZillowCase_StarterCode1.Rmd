@@ -1,0 +1,206 @@
+---
+title: "Zillow Case Project - Starter Code 1"
+author: "TheMitchWorksPro"
+date: "8/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Preliminary Analysis
+
+Preliminary analysis preserved here for research purposes.  Some data cleaning may get started in this document as well.
+
+```{r libSetup, warning=FALSE}
+## library list from here:
+# https://www.kaggle.com/philippsp/exploratory-analysis-zillow/notebook
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(corrplot)
+# library(leaflet)
+library(lubridate)
+
+## few more
+library(stringi)
+
+```
+
+```{r}
+## get files
+homes2016 <- fread('./input/properties_2016.csv', nrows=6)
+train2016 <- fread('./input/train_2016_v2.csv', nrows=6)
+sample_submission <- fread('./input/sample_submission.csv', nrow=6)
+
+# look at headers (assuming they are there and verifying they match some research links on zillow site):
+homes2016
+train2016
+sample_submission
+
+```
+
+Initial error encountered in next cell:
+
+output in markdown doc:
+
+Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:06rue'. Coercing previously read values in this column from logical, integer or numeric back to character which may not be lossless; e.g., if '00' and '000' occurred before they will now be just '0', and there may be inconsistencies with treatment of ',,' and ',NA,' too (if they occurred in this column before the bump). If this matters please rerun and set 'colClasses' to 'character' for this column. Please note that column type detection uses a sample of 1,000 rows (100 rows at 10 points) so hopefully this message should be very rare. If reporting to datatable-help, please rerun and include the output from verbose=TRUE.
+
+almost missed this - more complete output in console:
+
+Bumped column 50 to type character on data row 10354, field contains 'true'. Coercing previously read values in this column from logical, integer or numeric back to character which may not be lossless; e.g., if '00' and '000' occurred before they will now be just '0', and there may be inconsistencies with treatment of ',,' and ',NA,' too (if they occurred in this column before the bump). If this matters please rerun and set 'colClasses' to 'character' for this column. Please note that column type detection uses a sample of 1,000 rows (100 rows at 10 points) so hopefully this message should be very rare. If reporting to datatable-help, please rerun and include the output from verbose=TRUE.Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:08
+
+Coding that follows was attempt to address this.  Note:  testing began with na.string and then removed this as part of 
+investigation into above warning.  Warning persists with or without na.string coersion values
+
+```{r}
+## begin working on homes2016
+
+### original values before adding skip blank rows argument for comparison ... none were eliminated
+# Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:07
+# [1] 2985217      58
+
+homes2016 <- fread('./input/properties_2016.csv', header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"), blank.lines.skip = TRUE,
+                   colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+                                                   ## na.string = common values for NA that may have been used
+dim(homes2016)
+
+```
+
+```{r}
+"Column Names:"
+names(homes2016)
+"=========================="
+"Look at Column 50:"
+unique(homes2016$fireplaceflag) 
+
+```
+
+```{r}
+str(homes2016)
+```
+
+```{r}
+summary(homes2016)  ## should reveal columns with NA
+```
+
+```{r}
+## columns missingness Percentage
+percentMissingNess <- colSums(is.na(homes2016)) * 100 / nrow(homes2016)
+percentMissingNess[percentMissingNess > 0]
+
+```
+
+```{r}
+## is this worth it? --> use md.pattern() in mice to bulid a data frame or a matrix containing the incomplete data. 
+## library(mice)
+## md.pattern(homes2016)  ## tried this ... but so many entries the output was unreadable
+                          ## can be configured to show numerical grid of 4000+ rows with numbers indicating where / what cells are missing
+
+```
+
+```{r}
+## if we follow guidance of eliminating all fields w/ 75% or more missing values ... this is what we lose
+percentMissingNess[percentMissingNess > 75]
+```
+
+
+```{r}
+## if we follow guidance of eliminating all fields w/ 75% or more missing values ... this is what we keep
+percentMissingNess[percentMissingNess <= 75]
+```
+
+```{r}
+## fields w/ 25% or more and less than 75% missing fields ... to consider for imputation (if possible)
+percentMissingNess[percentMissingNess >= 25 & percentMissingNess <= 75]
+
+```
+
+```{r}
+## look for binary fields
+homes2016 %>% select(ends_with('flag'), starts_with('flag'), hashottuborspa) %>% unique()  
+          # confirm these are binary fields to clean
+          # note: without unique() we get over 2000+ rows
+
+```
+
+
+```{r}
+## quick fix on known binary fields ...
+## these are probably fine to impute as FALSE when empty ...
+
+homes2016 <- homes2016 %>% 
+  mutate(taxdelinquencyflag = ifelse(taxdelinquencyflag =="Y",1,0),
+         fireplaceflag = ifelse(fireplaceflag  =="true",1,0),
+         hashottuborspa = ifelse(hashottuborspa =="true",1,0))
+
+homes2016 %>% select(ends_with('flag'), hashottuborspa) %>% unique() ## for some reason, NAs persist
+```
+
+
+```{r}
+
+# homes2016 %>% select(ends_with('flag'), starts_with('flag'), hashottuborspa) %>% unique() ## for some reason, NAs persist
+homes2016 <- homes2016 %>% 
+  mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, taxdelinquencyflag),
+         fireplaceflag = ifelse(is.na(fireplaceflag), 0, fireplaceflag),
+         hashottuborspa = ifelse(is.na(hashottuborspa), 0, hashottuborspa)) 
+
+homes2016 %>% select(ends_with('flag')) %>% unique()
+homes2016 %>% select(hashottuborspa) %>% unique() 
+
+```
+
+```{r}
+##  We are in California ... this is probably a safe bet in terms of Fireplace values:
+# homes2016 %>% filter(fireplacecnt > 0) %>% select(fireplaceflag, fireplacecnt) %>% mutate(fireplaceflag = ifelse(fireplacecnt > 0, 1, 0))
+homes2016 <- homes2016 %>% mutate(fireplaceflag = ifelse(fireplacecnt > 0, 1, 0), fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt))
+homes2016 %>% select(fireplacecnt, fireplaceflag) %>% unique()   
+  ## note:  this combination spot check shows we have records where fireplacecnt is greater than 7 ... these should be pricey homes
+
+```
+
+```{r}
+homes2016 %>% select(fireplacecnt, fireplaceflag) %>% filter(fireplacecnt == 0) %>% nrow()  ## that's about right ...
+##  added in simple row count, but originally tested this without nrow() and did spotcheck ... not sure why counts look as they do in prev cell
+```
+
+```{r}
+fwrite(homes2016, 'properties_2016_step2.csv')
+```
+
+```{r}
+train2016 <- fread('./input/train_2016_v2.csv')
+names(train2016)  # quick reminder 
+nrow(train2016)
+```
+
+```{r}
+alldata <- merge(x = homes2016, y = train2016, by = "parcelid", all.x = TRUE)
+head(alldata)
+nrow(alldata)
+
+alldata %>% filter(is.na(logerror)==FALSE) %>% head()  # spot check
+
+```
+
+```{r}
+## histogram on logerror
+ggplot(train2016) + geom_histogram(aes(logerror), bins = 20)
+
+```
+
+
+
+```{r}
+## bad code
+## plot(homes2016[, c(names(percentMissingNess[percentMissingNess <= 75])[1:12])])  # , col = variable
+# scatterplotMatrix(~AG+YR+CD|LC,data=case2002[, c(1,5:7)])
+
+```
+
