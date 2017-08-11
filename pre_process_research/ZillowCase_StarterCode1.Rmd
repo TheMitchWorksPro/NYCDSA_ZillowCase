@@ -31,16 +31,23 @@ library(lubridate)
 library(stringi)
 
 ```
+```{r}
+# ## Will Code to standardize on:
+# train = fread('train_2016_v2.csv')
+# properties = fread('properties_2016.csv')
+# full = properties %>% left_join(., train, by = 'parcelid')
+
+```
 
 ```{r}
-## get files
-homes2016 <- fread('./input/properties_2016.csv', nrows=6)
-train2016 <- fread('./input/train_2016_v2.csv', nrows=6)
+## preview files
+properties <- fread('./input/properties_2016.csv', nrows=6)
+train <- fread('./input/train_2016_v2.csv', nrows=6)
 sample_submission <- fread('./input/sample_submission.csv', nrow=6)
 
 # look at headers (assuming they are there and verifying they match some research links on zillow site):
-homes2016
-train2016
+properties
+train
 sample_submission
 
 ```
@@ -59,39 +66,39 @@ Coding that follows was attempt to address this.  Note:  testing began with na.s
 investigation into above warning.  Warning persists with or without na.string coersion values
 
 ```{r}
-## begin working on homes2016
+## begin working on properties
 
 ### original values before adding skip blank rows argument for comparison ... none were eliminated
 # Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:07
 # [1] 2985217      58
 
-homes2016 <- fread('./input/properties_2016.csv', header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"), blank.lines.skip = TRUE,
+properties <- fread('./input/properties_2016.csv', header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"), blank.lines.skip = TRUE,
                    colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
                                                    ## na.string = common values for NA that may have been used
-dim(homes2016)
+dim(properties)
 
 ```
 
 ```{r}
 "Column Names:"
-names(homes2016)
+names(properties)
 "=========================="
 "Look at Column 50:"
-unique(homes2016$fireplaceflag) 
+unique(properties$fireplaceflag) 
 
 ```
 
 ```{r}
-str(homes2016)
+str(properties)
 ```
 
 ```{r}
-summary(homes2016)  ## should reveal columns with NA
+summary(properties)  ## should reveal columns with NA
 ```
 
 ```{r}
 ## columns missingness Percentage
-percentMissingNess <- colSums(is.na(homes2016)) * 100 / nrow(homes2016)
+percentMissingNess <- colSums(is.na(properties)) * 100 / nrow(properties)
 percentMissingNess[percentMissingNess > 0]
 
 ```
@@ -99,7 +106,7 @@ percentMissingNess[percentMissingNess > 0]
 ```{r}
 ## is this worth it? --> use md.pattern() in mice to bulid a data frame or a matrix containing the incomplete data. 
 ## library(mice)
-## md.pattern(homes2016)  ## tried this ... but so many entries the output was unreadable
+## md.pattern(properties)  ## tried this ... but so many entries the output was unreadable
                           ## can be configured to show numerical grid of 4000+ rows with numbers indicating where / what cells are missing
 
 ```
@@ -122,85 +129,312 @@ percentMissingNess[percentMissingNess >= 25 & percentMissingNess <= 75]
 ```
 
 ```{r}
-## look for binary fields
-homes2016 %>% select(ends_with('flag'), starts_with('flag'), hashottuborspa) %>% unique()  
+## reset Properties from Data
+## rerun this cell when debugging field cleanup rules after this point ...
+
+properties <- fread('./input/properties_2016.csv', header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"), blank.lines.skip = TRUE,
+                   colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+                                                   ## na.string = common values for NA that may have been used
+dim(properties)
+
+```
+
+```{r}
+## look for binary potential fields
+properties %>% select(ends_with('flag'), starts_with('flag'), hashottuborspa) %>% unique()  
           # confirm these are binary fields to clean
           # note: without unique() we get over 2000+ rows
+          #       some quirks encountered with this approach so this may not be fully trustworthy ...
+```
+
+```{r}
+## count field:
+"fireplacecnt:"
+unique(properties$fireplacecnt)  # has NA but no 0 count ...  This is probably 0
+table(properties$fireplacecnt)   # show distribution of values;  table() does not count NAs
+
+"fireplaceflag:"
+unique(properties$fireplaceflag)
+table(properties$fireplaceflag)
+"taxdelinquencyflag:"
+unique(properties$taxdelinquencyflag)
+table(properties$taxdelinquencyflag)
+"hashottuborspa:"
+unique(properties$hashottuborspa)
+table(properties$hashottuborspa)
+
+```
+
+```{r}
+## test  (misleading because what appears to be a count on the records is not 
+properties %>% select(taxdelinquencyflag) %>% 
+  mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, ifelse(taxdelinquencyflag =="Y", 1, taxdelinquencyflag))) %>% unique()
+
+```
+
+```{r}
+
+## Missingness Cleanup: step 1
+##  * These cells, it makes sense that NA is most likely False
+##  * Yes or True value conferted to 1, otherwise, 0
+
+properties2 <- properties %>%  
+  mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, ifelse(taxdelinquencyflag =="Y", 1, taxdelinquencyflag)),
+         hashottuborspa = ifelse(is.na(hashottuborspa), 0, ifelse(hashottuborspa =="true", 1, hashottuborspa)),
+         fireplaceflag = ifelse(is.na(fireplaceflag), 0, ifelse(fireplaceflag =="true", 1, fireplaceflag)),
+         fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt)
+  )
+
+```
+
+```{r}
+## count field:
+"fireplacecnt:"
+unique(properties2$fireplacecnt)  # has NA but no 0 count ...  This is probably 0
+table(properties2$fireplacecnt)   # show distribution of values;  table() does not count NAs
+
+"fireplaceflag:"
+unique(properties2$fireplaceflag)
+table(properties2$fireplaceflag)
+"taxdelinquencyflag:"
+unique(properties2$taxdelinquencyflag)
+table(properties2$taxdelinquencyflag)
+"hashottuborspa:"
+unique(properties2$hashottuborspa)
+table(properties2$hashottuborspa)
+```
+
+```{r}
+## more checks but ignore the numbered columns ... it is not record counts:
+properties2 %>% select(taxdelinquencyflag) %>% unique()
+properties2 %>% select(hashottuborspa) %>% unique()
+properties2 %>% select(fireplaceflag) %>% unique()
+properties2 %>% select(fireplacecnt) %>% unique()
+
+# Zillow_missing[0] = sapply(properties, function(j) sum(is.na(j)))
+
+```
+
+```{r}
+properties2 %>% select(taxdelinquencyflag, taxdelinquencyyear) %>% filter(!is.na(taxdelinquencyyear) & taxdelinquencyflag==0)
+  # year 0 = 2000, these two records should be cleaned though not really worth it
+```
+
+```{r}
 
 ```
 
 
 ```{r}
-## quick fix on known binary fields ...
-## these are probably fine to impute as FALSE when empty ...
+## count field:  check it just before making changes ...
 
-homes2016 <- homes2016 %>% 
-  mutate(taxdelinquencyflag = ifelse(taxdelinquencyflag =="Y",1,0),
-         fireplaceflag = ifelse(fireplaceflag  =="true",1,0),
-         hashottuborspa = ifelse(hashottuborspa =="true",1,0))
+"fireplacecnt:"
+unique(properties2$fireplacecnt)  # has NA but no 0 count ...  This is probably 0
+table(properties2$fireplacecnt)   # show distribution of values;  table() does not count NAs
 
-homes2016 %>% select(ends_with('flag'), hashottuborspa) %>% unique() ## for some reason, NAs persist
-```
-
-
-```{r}
-
-# homes2016 %>% select(ends_with('flag'), starts_with('flag'), hashottuborspa) %>% unique() ## for some reason, NAs persist
-homes2016 <- homes2016 %>% 
-  mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, taxdelinquencyflag),
-         fireplaceflag = ifelse(is.na(fireplaceflag), 0, fireplaceflag),
-         hashottuborspa = ifelse(is.na(hashottuborspa), 0, hashottuborspa)) 
-
-homes2016 %>% select(ends_with('flag')) %>% unique()
-homes2016 %>% select(hashottuborspa) %>% unique() 
+"fireplaceflag:"
+unique(properties2$fireplaceflag)
+table(properties2$fireplaceflag)
+"taxdelinquencyflag:"
+unique(properties2$taxdelinquencyflag)
+table(properties2$taxdelinquencyflag)
+# "hashottuborspa:"
+# unique(properties2$hashottuborspa)
+# table(properties2$hashottuborspa)
 
 ```
 
 ```{r}
-##  We are in California ... this is probably a safe bet in terms of Fireplace values:
-# homes2016 %>% filter(fireplacecnt > 0) %>% select(fireplaceflag, fireplacecnt) %>% mutate(fireplaceflag = ifelse(fireplacecnt > 0, 1, 0))
-homes2016 <- homes2016 %>% mutate(fireplaceflag = ifelse(fireplacecnt > 0, 1, 0), fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt))
-homes2016 %>% select(fireplacecnt, fireplaceflag) %>% unique()   
-  ## note:  this combination spot check shows we have records where fireplacecnt is greater than 7 ... these should be pricey homes
+## Missingness Cleanup: step 2
+##  * if we have tax delinquency year and tax delinquency flag is 0 (NAs set to 0 previously), it should really be set to 1 for True
+##  * if fireplacecount > 0, then fireplaceflag should be 1 for true
+##  * conversely, if fireplacecnt is 0 and fireplaceflag is true, replace count with -1 so we can 
+##                investigate for imputation
+
+properties <- properties2 %>%  
+  mutate(taxdelinquencyflag = ifelse(!is.na(taxdelinquencyyear) & taxdelinquencyflag==0, 1, taxdelinquencyflag),
+         fireplaceflag = ifelse(fireplacecnt > 0, 1, fireplaceflag),
+         fireplacecnt = ifelse(fireplaceflag==1 & fireplacecnt == 0, -1, fireplacecnt)  
+               # this is a marker that we need to impute these values
+               # if they exist ...
+  )
 
 ```
 
 ```{r}
-homes2016 %>% select(fireplacecnt, fireplaceflag) %>% filter(fireplacecnt == 0) %>% nrow()  ## that's about right ...
+## count field:  check it just before making changes ...
+
+"fireplacecnt:"
+unique(properties2$fireplacecnt)  # has NA but no 0 count ...  This is probably 0
+table(properties2$fireplacecnt)   # show distribution of values;  table() does not count NAs
+
+"fireplaceflag:"
+unique(properties2$fireplaceflag)
+table(properties2$fireplaceflag)
+"taxdelinquencyflag:"
+unique(properties2$taxdelinquencyflag)
+table(properties2$taxdelinquencyflag)
+# "hashottuborspa:"
+# unique(properties2$hashottuborspa)
+# table(properties2$hashottuborspa)
+```
+
+
+```{r}
+properties %>% select(fireplacecnt, fireplaceflag) %>% filter(fireplacecnt == 0) %>% nrow()  ## that's about right ...
 ##  added in simple row count, but originally tested this without nrow() and did spotcheck ... not sure why counts look as they do in prev cell
 ```
 
+
 ```{r}
-fwrite(homes2016, 'properties_2016_step2.csv')
+## taxdelinquencyyear
+class(properties$taxdelinquencyyear)
+unique(properties$taxdelinquencyyear)
+
 ```
 
 ```{r}
-train2016 <- fread('./input/train_2016_v2.csv')
-names(train2016)  # quick reminder 
-nrow(train2016)
+data_dictionary <- fread('./dictionary.csv')
 ```
 
 ```{r}
-alldata <- merge(x = homes2016, y = train2016, by = "parcelid", all.x = TRUE)
-head(alldata)
-nrow(alldata)
+properties2 <- properties  # synch up my two copies before moving forward ...
 
-alldata %>% filter(is.na(logerror)==FALSE) %>% head()  # spot check
+factor_cols <- c("airconditioningtypeid", 
+                 "fips",
+                 "heatingorsystemtypeid", 
+                 "propertycountylandusecode",
+                 "propertylandusetypeid",
+                 "propertyzoningdesc", 
+                 "rawcensustractandblock",
+                 "regionidcity", 
+                 "regionidcounty", 
+                 "regionidneighborhood",
+                 "regionidzip",
+                 "censustractandblock")
+
+## convert columns to factors
+properties2 <- properties2 %>% 
+  mutate_at(.funs = as.factor, 
+            .vars = intersect(names(properties2), factor_cols))
+```
+
+```{r}
+### step 3:  from NYC DSA Code:
+properties <- properties %>%
+  mutate(latitude = latitude/1e6, longitude = longitude/1e6)
+
+```
+
+```{r}
+
+## 
+levels(properties2$fips)
+length(unique(properties2$latitude))
+length(unique(properties2$longitude))
+
+## mean of zipcode ... find related lat / long and assign to missing 
+
+```
+
+```{r}
+properties2 %>% select(fips, latitude) %>% filter(is.na(fips) & !is.na(latitude))
+properties2 %>% select(fips, longitude) %>% filter(is.na(fips) & !is.na(longitude))
+properties2 %>% select(latitude, longitude) %>% filter(is.na(latitude) & !is.na(longitude))
+properties2 %>% select(fips, latitude) %>% filter(!is.na(fips) & is.na(latitude))
+properties2 %>% select(fips, longitude) %>% filter(!is.na(fips) & is.na(longitude))
+properties2 %>% select(latitude, longitude) %>% filter(!is.na(latitude) & is.na(longitude))
+
+## check these for relationship
+                          ## Missingness:
+# 'regionidcounty'        ## 0.3831212  (same as Lat/Long/fips)
+# 'regionidcity'          ## 2.1052071
+# 'regionidzip'           ## 0.4683077
+# 'regionidneighborhood'  ## 61.2623806
+                                              
+```
+```{r}
+levels(properties2$regionidzip)
+```
+```{r}
+levels(properties2$regionidcity)
+```
+
+
+```{r}
+## uncomment when ready to re-write the output table
+# fwrite(properties, 'properties_2016_step2.csv')
+
+```
+
+```{r}
+train <- fread('./input/train_2016_v2.csv')
+names(train)  # quick reminder 
+nrow(train)
+```
+
+```{r}
+# full <- merge(x = properties, y = train, by = "parcelid", all.x = TRUE)
+full = properties %>% left_join(., train, by = 'parcelid')
+head(full)
+nrow(full)
+
+full %>% filter(is.na(logerror)==FALSE) %>% head()  # spot check
 
 ```
 
 ```{r}
 ## histogram on logerror
-ggplot(train2016) + geom_histogram(aes(logerror), bins = 20)
+ggplot(train) + geom_histogram(aes(logerror), bins = 30)
 
 ```
 
+```{r}
+# plot(full)
+# par("mar")
+# eda.plot(full)
+
+# colMtx <- matrix(names(properties2)[1:length(properties2)-1, 2:], nrow = 8)
+# for (i in 1:ncol(colMtx)) {
+#   tableplot(properties2, 
+#             select_string = c(colMtx[,i], "logerror"), 
+#             sortCol = "logerror", decreasing = TRUE, 
+#             nBins = 30)
+# }
+
+### quick test
+# head(properties, 25)
+# unique(properties$censustractandblock)[100]
+# unique(properties$rawcensustractandblock)[100]
+
+```
 
 
 ```{r}
 ## bad code
 ## plot(homes2016[, c(names(percentMissingNess[percentMissingNess <= 75])[1:12])])  # , col = variable
 # scatterplotMatrix(~AG+YR+CD|LC,data=case2002[, c(1,5:7)])
+
+# ## Berk Code:
+# Zillow = full
+# # renaming data frame
+# 
+# Zillow_missing = sapply(Zillow, function(j) sum(is.na(j)))
+# # calculating # of missing values per column
+# 
+# Zillow_missing_percent = Zillow_missing/nrow(Zillow)*100
+# # calculating % of missing values per column
+# 
+# Zillow_values = nrow(Zillow) - Zillow_missing
+# # calculating # of non NAs per column
+# 
+# Zillow_unique = sapply(Zillow, function(j) length(unique(j)))
+# # calculating # of unique values per column
+# 
+# ## Will Code:
+# train = fread('train_2016_v2.csv')
+# properties = fread('properties_2016.csv')
+# full = properties %>% left_join(., train, by = 'parcelid')
 
 ```
 
