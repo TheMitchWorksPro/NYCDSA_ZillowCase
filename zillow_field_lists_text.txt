@@ -1,4 +1,4 @@
-
+Initial field types ... Before Any Changes Made:
 
                    parcelid        airconditioningtypeid     architecturalstyletypeid                 basementsqft                  bathroomcnt 
                  "character"                  "character"                  "character"                  "character"                  "character" 
@@ -26,6 +26,7 @@
                  "character"                  "character"                  "character" 
 
 
+Missingness Percent:
 
       airconditioningtypeid     architecturalstyletypeid                 basementsqft                  bathroomcnt 
                   72.8154101                   99.7969662                   99.9454646                    0.3839587 
