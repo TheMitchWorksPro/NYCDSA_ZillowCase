@@ -1,0 +1,59 @@
+
+
+                   parcelid        airconditioningtypeid     architecturalstyletypeid                 basementsqft                  bathroomcnt 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+                  bedroomcnt          buildingclasstypeid        buildingqualitytypeid            calculatedbathnbr                   decktypeid 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+    finishedfloor1squarefeet calculatedfinishedsquarefeet         finishedsquarefeet12         finishedsquarefeet13         finishedsquarefeet15 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+        finishedsquarefeet50          finishedsquarefeet6                         fips                 fireplacecnt                  fullbathcnt 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+                garagecarcnt              garagetotalsqft               hashottuborspa        heatingorsystemtypeid                     latitude 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+                   longitude            lotsizesquarefeet                      poolcnt                  poolsizesum                 pooltypeid10 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+                 pooltypeid2                  pooltypeid7    propertycountylandusecode        propertylandusetypeid           propertyzoningdesc 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+      rawcensustractandblock                 regionidcity               regionidcounty         regionidneighborhood                  regionidzip 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+                     roomcnt                  storytypeid          threequarterbathnbr       typeconstructiontypeid                      unitcnt 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+          yardbuildingsqft17           yardbuildingsqft26                    yearbuilt              numberofstories                fireplaceflag 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+  structuretaxvaluedollarcnt            taxvaluedollarcnt               assessmentyear        landtaxvaluedollarcnt                    taxamount 
+                 "character"                  "character"                  "character"                  "character"                  "character" 
+          taxdelinquencyflag           taxdelinquencyyear          censustractandblock 
+                 "character"                  "character"                  "character" 
+
+
+
+      airconditioningtypeid     architecturalstyletypeid                 basementsqft                  bathroomcnt 
+                  72.8154101                   99.7969662                   99.9454646                    0.3839587 
+                  bedroomcnt          buildingclasstypeid        buildingqualitytypeid            calculatedbathnbr 
+                   0.3835567                   99.5769487                   35.0637491                    4.3183460 
+                  decktypeid     finishedfloor1squarefeet calculatedfinishedsquarefeet         finishedsquarefeet12 
+                  99.4273113                   93.2093044                    1.8613387                    9.2466645 
+        finishedsquarefeet13         finishedsquarefeet15         finishedsquarefeet50          finishedsquarefeet6 
+                  99.7430003                   93.6085718                   93.2093044                   99.2630017 
+                        fips                 fireplacecnt                  fullbathcnt                 garagecarcnt 
+                   0.3831212                   89.5271600                    4.3183460                   70.4119667 
+             garagetotalsqft               hashottuborspa        heatingorsystemtypeid                     latitude 
+                  70.4119667                   97.6881413                   39.4884526                    0.3831212 
+                   longitude            lotsizesquarefeet                      poolcnt                  poolsizesum 
+                   0.3831212                    9.2488754                   82.6634379                   99.0633847 
+                pooltypeid10                  pooltypeid2                  pooltypeid7    propertycountylandusecode 
+                  98.7626025                   98.9255387                   83.7378991                    0.4112599 
+       propertylandusetypeid           propertyzoningdesc       rawcensustractandblock                 regionidcity 
+                   0.3831212                   33.7190898                    0.3831212                    2.1052071 
+              regionidcounty         regionidneighborhood                  regionidzip                      roomcnt 
+                   0.3831212                   61.2623806                    0.4683077                    0.3843942 
+                 storytypeid          threequarterbathnbr       typeconstructiontypeid                      unitcnt 
+                  99.9455986                   89.5608594                   99.7739863                   33.7572444 
+          yardbuildingsqft17           yardbuildingsqft26                    yearbuilt              numberofstories 
+                  97.3082359                   99.9113297                    2.0074923                   77.1517782 
+               fireplaceflag   structuretaxvaluedollarcnt            taxvaluedollarcnt               assessmentyear 
+                  99.8270477                    1.8418092                    1.4253570                    0.3831882 
+       landtaxvaluedollarcnt                    taxamount           taxdelinquencyflag           taxdelinquencyyear 
+                   2.2689473                    1.0468251                   98.1086132                   98.1085462 
+         censustractandblock 
+                   2.5166010 
