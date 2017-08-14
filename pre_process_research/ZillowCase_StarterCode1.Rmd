@@ -330,8 +330,8 @@ properties <- properties %>%
 
 ## 
 levels(properties2$fips)
-length(unique(properties2$latitude))
-length(unique(properties2$longitude))
+length(unique(properties2$latitude))  # counts unique values ## not really useful
+length(unique(properties2$longitude)) # counts unique values ## not really useful in this context
 
 ## mean of zipcode ... find related lat / long and assign to missing 
 
@@ -390,51 +390,17 @@ ggplot(train) + geom_histogram(aes(logerror), bins = 30)
 ```
 
 ```{r}
-# plot(full)
-# par("mar")
-# eda.plot(full)
-
-# colMtx <- matrix(names(properties2)[1:length(properties2)-1, 2:], nrow = 8)
-# for (i in 1:ncol(colMtx)) {
-#   tableplot(properties2, 
-#             select_string = c(colMtx[,i], "logerror"), 
-#             sortCol = "logerror", decreasing = TRUE, 
-#             nBins = 30)
-# }
 
 ### quick test
 # head(properties, 25)
-# unique(properties$censustractandblock)[100]
-# unique(properties$rawcensustractandblock)[100]
+unique(properties$censustractandblock)[100]
+unique(properties$rawcensustractandblock)[100]
 
 ```
 
 
 ```{r}
-## bad code
-## plot(homes2016[, c(names(percentMissingNess[percentMissingNess <= 75])[1:12])])  # , col = variable
-# scatterplotMatrix(~AG+YR+CD|LC,data=case2002[, c(1,5:7)])
 
-# ## Berk Code:
-# Zillow = full
-# # renaming data frame
-# 
-# Zillow_missing = sapply(Zillow, function(j) sum(is.na(j)))
-# # calculating # of missing values per column
-# 
-# Zillow_missing_percent = Zillow_missing/nrow(Zillow)*100
-# # calculating % of missing values per column
-# 
-# Zillow_values = nrow(Zillow) - Zillow_missing
-# # calculating # of non NAs per column
-# 
-# Zillow_unique = sapply(Zillow, function(j) length(unique(j)))
-# # calculating # of unique values per column
-# 
-# ## Will Code:
-# train = fread('train_2016_v2.csv')
-# properties = fread('properties_2016.csv')
-# full = properties %>% left_join(., train, by = 'parcelid')
 
 ```
 

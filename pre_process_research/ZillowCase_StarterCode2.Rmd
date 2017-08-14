@@ -1,0 +1,413 @@
+---
+title: "Zillow Case Project - Starter Code 1"
+author: "TheMitchWorksPro"
+date: "8/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Code Testing for Data Cleaning
+Set this up to test ideas for cleaning the code
+
+```{r libSetup, warning=FALSE}
+## library list from here:
+# https://www.kaggle.com/philippsp/exploratory-analysis-zillow/notebook
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(corrplot)
+# library(leaflet)
+library(lubridate)
+
+## few more
+library(stringi)
+
+```
+
+```{r}
+
+# Import libraries
+library(caret)
+
+# Setting Parallel processing
+library(doMC)
+library(parallel)
+number_of_cores <- detectCores()
+registerDoMC(cores = number_of_cores/2)  ## further research:
+    # http://blog.aicry.com/r-parallel-computing-in-5-minutes/
+
+```
+
+
+```{r}
+### original values before adding skip blank rows argument for comparison ... none were eliminated
+# Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:07
+# [1] 2985217      58
+
+datDir <- "./input/"
+homePropertiesFile <- "properties_2016.csv"
+logErrorDataFile <- "train_2016_v2.csv"
+
+properties <- fread(paste0(datDir, homePropertiesFile), header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"),
+                   blank.lines.skip = TRUE,
+                   colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+                                                   ## na.string = common values for NA that may have been used
+dim(properties)
+
+train = fread(paste0(datDir, logErrorDataFile))
+full = properties %>% left_join(., train, by = 'parcelid')
+
+
+
+```
+
+```{r}
+head(train)
+
+```
+
+
+```{r}
+### from NYC DSA Analysis:  correct Lat/Long to proper numbers
+full <- full %>%
+  mutate(latitude = latitude/1e6, longitude = longitude/1e6)
+```
+
+
+## Looking into Number of Stories
+
+```{r}
+missing = lapply(full, function(i) sum(is.na(i))/nrow(full)) # verity missingness
+missing$numberofstories
+
+```
+
+
+```{r}
+table(full$numberofstories)
+unique(full$numberofstories)
+```
+
+```{r}
+## this started as a look at the really strange properties with "too many stories"
+## to determine if they were valid ...
+
+## spot check suggests that properties with more than 5 are dirty data
+## though logically you can have properties with more than 5 floors
+## these 10 records do not have enough square feet or $ value to explain the extra floors
+
+full %>% filter(as.integer(numberofstories) > 5) %>%                      
+         select(parcelid, numberofstories, bathroomcnt,bedroomcnt,        
+         buildingclasstypeid, calculatedfinishedsquarefeet, taxvaluedollarcnt, unitcnt)
+   ## unitcnt is NA for all of these
+                                          
+
+```
+
+By comparison, at 5 floors, some of the records look like they could support more, but without more information,
+this data has to be treated as corect:
+
+```{r}
+full %>% filter(as.integer(numberofstories) == 5) %>%                      
+         select(parcelid, numberofstories, bathroomcnt,bedroomcnt,        
+         buildingclasstypeid, calculatedfinishedsquarefeet, taxvaluedollarcnt, unitcnt)
+  ## at 5 floors, we see buildings with high $value and in some cases, unitcounts to corroborate they are probably apt. buildings.
+
+```
+
+
+```{r}
+
+# stats_mode <- function(x) {
+#   # pass in variable column and calculate the mode on it
+#   names(which.max(table(train_data$x)))  ## assumes a global train_data
+#                                          ## worked in Shu's code, broke in mine
+# }
+
+stats_mode <- function(x) {
+  # pass in variable column and calculate the mode on it
+  names(which.max(table(x)))
+}
+
+# stats_mode2 <- function(x) {
+#   # pass in variable column and calculate the mode on it
+#   names(which.max(table(full$x)))
+# }
+# full %>% stats_mode2(., numberofstories)
+
+stats_mode(full$numberofstories)
+
+
+```
+
+```{r}
+
+mode1 = stats_mode(full$numberofstories)
+
+full <- full %>%  
+  mutate(numberofstories = ifelse(is.na(numberofstories), mode1, numberofstories)
+  )
+
+table(full$numberofstories)  # check that table of values unchanged by this rule
+unique(full$numberofstories) # check that NAs are now gone
+
+```
+
+```{r}
+## separate rule so we can comment this out if adding more data later for which this rule is no longer true
+## in 2016 data, see research file showing that properties with floors greater than 5 appear to be dirty data
+# full$numberofstories[numberofstories > 5]
+
+full <- full %>%  
+  mutate(numberofstories = ifelse(as.integer(numberofstories) > 5, mode1, numberofstories)
+  )
+
+table(full$numberofstories)  ## check that data changed as expected ...
+unique(full$numberofstories)
+
+```
+
+lotsize:
+
+```{r}
+### test ####
+library(Hmisc)
+set.seed(0)
+full$lotsizesqft_imputed <- Hmisc::impute(full$lotsizesquarefeet, "random")
+summary(full)
+
+```
+```{r}
+# mean only changed from 22823 to 22923 (not that significant)
+## check change in sd ...
+sd(full$lotsizesquarefeet , na.rm=T)
+sd(full$lotsizesqft_imputed)
+
+(sd(full$lotsizesqft_imputed) -  sd(full$lotsizesquarefeet , na.rm=T)) / sd(full$lotsizesquarefeet , na.rm=T)
+## 11% change in sd()
+```
+
+
+```{r}
+
+full %>% filter(lotsizesquarefeet < calculatedfinishedsquarefeet) %>%                      
+         select(parcelid, lotsizesquarefeet , calculatedfinishedsquarefeet, 
+                finishedfloor1squarefeet,
+                finishedsquarefeet6,
+                finishedsquarefeet12,
+                finishedsquarefeet13,
+                finishedsquarefeet15,
+                finishedsquarefeet50
+                ) %>% nrow()     ## comment out from %>% to view records in Markdown doc
+   ## unitcnt is NA for all of these
+
+
+```
+
+Finish up Tax Delinquincy and Fields from starterCode1
+
+```{r}
+## taxdelinquencyyear  (repeat from doc1)
+class(full$taxdelinquencyyear)
+unique(full$taxdelinquencyyear)
+
+table(full$taxdelinquencyyear)
+```
+
+```{r}
+full <- full %>% mutate(taxdelinquencyyear4d = ifelse(is.na(taxdelinquencyyear), 0,
+                                     ifelse(taxdelinquencyyear < 17, taxdelinquencyyear+2000, taxdelinquencyyear+1900)))
+
+unique(full$taxdelinquencyyear4d)
+table(full$taxdelinquencyyear4d)
+
+```
+
+```{r}
+## repeate earlier rules from startercode1 to use them here as well
+full <- full %>%  
+  mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, ifelse(taxdelinquencyflag =="Y", 1, taxdelinquencyflag)),
+         hashottuborspa = ifelse(is.na(hashottuborspa), 0, ifelse(hashottuborspa =="true", 1, hashottuborspa)),
+         fireplaceflag = ifelse(is.na(fireplaceflag), 0, ifelse(fireplaceflag =="true", 1, fireplaceflag)),
+         fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt)
+  )
+
+full <- full %>%  
+  mutate(taxdelinquencyflag = ifelse(!is.na(taxdelinquencyyear) & taxdelinquencyflag==0, 1, taxdelinquencyflag),
+         fireplaceflag = ifelse(fireplacecnt > 0, 1, fireplaceflag),
+         fireplacecnt = ifelse(fireplaceflag==1 & fireplacecnt == 0, -1, fireplacecnt)  
+         # -1 is a marker indicating that we need to impute these values if they exist
+         # none were actually found when code was run but that may change with 2017 data in October
+  )
+
+unique(full$taxdelinquencyflag)
+
+```
+
+
+```{r}
+## check done ... no rule needed yet
+full %>% select(taxdelinquencyflag, taxdelinquencyyear, taxdelinquencyyear4d) %>% 
+  filter(is.na(taxdelinquencyyear) & taxdelinquencyflag==1)  ## verified w/ other combination
+                                                              ## nothing to return                         
+```
+
+```{r}
+## check done ... no rule needed yet
+full %>% select(taxdelinquencyflag, taxdelinquencyyear, taxdelinquencyyear4d) %>% 
+  filter(!is.na(taxdelinquencyyear) & taxdelinquencyflag==0)  ## verified w/ other combination
+                                                              ## nothing to return
+```
+
+```{r}
+## quick check before moving on
+unique(full$taxdelinquencyyear4d)
+table(full$taxdelinquencyyear4d)
+
+```
+
+```{r}
+## new field: calculate number of years delinquent:
+## -----------------
+## if 0, house is not in delinquency
+## If 1 or more, house is delinquent and this is the x year of delinquincy
+## example: 2016 will come out as 1 for first year even though first year is not complete
+##          this one field should now reflect full delinquency state
+##          update variable: curYear to 2017 after new data comes out
+
+curYear = 2016
+
+full <- full %>%  
+  mutate(taxdelinquencyNoYrs = ifelse(taxdelinquencyyear4d == 0, 0, curYear - taxdelinquencyyear4d + 1))
+
+```
+
+```{r}
+## spot check of values and ensure NAs are not present
+unique(full$taxdelinquencyNoYrs)
+table(full$taxdelinquencyNoYrs)
+
+```
+
+Fields from set 2 having to do with Location (and related fields to help with imputation)
+
+```{r}
+## rerun missing calculations
+missing = lapply(full, function(i) sum(is.na(i))/nrow(full)) # verity missingness
+full$fips <- as.factor(full$fips)  # make fips a factor
+```
+
+
+```{r}
+
+"FIPS:"
+levels(full$fips)
+"FIPS Missing:"
+missing$fips
+"Latitude Missing:"
+missing$latitude
+"Longitude Records:"
+missing$longitude
+
+## from spotcheck of test in StarterCode1:
+## check these for relationship
+                          ## Missingness:
+# 'regionidcounty'        ## 0.3831212  (same as Lat/Long/fips)
+# 'regionidcity'          ## 2.1052071
+# 'regionidzip'           ## 0.4683077
+# 'regionidneighborhood'  ## 61.2623806
+
+## function used forgot to multiply by 100 ...
+## so 0.0038... below is same as 0.38% above (still less than 1% though)
+
+```
+
+```{r}
+## quick test of assumptions:  
+# how many records are missing all of these?: regionidcounty, latitude, longitude, fips? (miss % same)
+library(mice)
+full %>% select(regionidcity, latitude, longitude, fips) %>% md.pattern()
+
+```
+
+regioncityid is missing either when all 4 or missing or when the other 3 are present
+lattitude, longitude and fips always have values together so they can't help w/ each other's missingness
+
+2922495 = rows where all 4 columns have values
+51410 = rows where only regionidcity missing (from this set of 4 cols)
+11437 = missing all 4 ...
+
+Final col: 0 cols missing data on this row
+           1 col  missing data on this row
+           4 cols missing data on this row
+           Total is totaling across rows subtotal so: 97158 data cells missing within this set of columns / rows (df)
+
+```{r}
+# full %>% select(regionidcity, latitude, longitude, fips) %>% filter(is.na(regionidcity) & !is.na(latitude) 
+#                                                                     & !is.na(longitude) & !is.na(fips)) 
+#    ## above can help verify undersatnding of graph by switching is.na to !is.na ...
+
+# library(mice)
+full %>% select(regionidcity, latitude, longitude, fips,
+                regionidcounty, regionidneighborhood, regionidzip) %>% md.pattern()
+
+```
+
+Are corplots of these for complete values only helpful?
+
+```{r}
+# help with using grep/grepl in this context:
+#      https://awakeningdatascientist.wordpress.com/2015/07/20/r-of-the-day-grep-and-grepl/
+
+tmpCols1 = full[grepl('regionidcity|latitude|longitude|fips', names(full))]
+tmpCols1 = as.data.frame(sapply(tmpCols1, as.numeric))  # note: fips factor converted to level values: 1,2,3
+tmpCols2 = full[grepl('region|fips|latitude|longitude', names(full))]
+tmpCols2 = as.data.frame(sapply(tmpCols2, as.numeric))  # note: fips factor converted to level values: 1,2,3
+## convert to numeric first to use in cor plot (see above):
+corrplot(cor(tmpCols1, use = "pairwise.complete.obs"))
+corrplot(cor(tmpCols2, use="pairwise.complete.obs"))
+
+```
+Analysis:
+
+- Longitude shows a moderately strong negative correlation to latitude.
+- regionidcity shows a moderatly strong correlation to latitude
+- regionidcounty is showing a moderately strong correlation to Latitude
+- regionidcounty is showing a strong negative correlation to fips
+
+```{r}
+### for later step in cleaning process ... basic code to convert all specified string columns to factors from the df
+
+# full_2 <- full  # synch up my two copies before moving forward ...
+# 
+# factor_cols <- c("airconditioningtypeid", 
+#                  "fips",
+#                  "heatingorsystemtypeid", 
+#                  "propertycountylandusecode",
+#                  "propertylandusetypeid",
+#                  "propertyzoningdesc", 
+#                  "rawcensustractandblock",
+#                  "regionidcity", 
+#                  "regionidcounty", 
+#                  "regionidneighborhood",
+#                  "regionidzip",
+#                  "censustractandblock")
+# 
+# ## convert columns to factors
+# full_2 <- full_2 %>% 
+#   mutate_at(.funs = as.factor, 
+#             .vars = intersect(names(properties2), factor_cols))
+```
+
+
+```{r}
+
+
+```

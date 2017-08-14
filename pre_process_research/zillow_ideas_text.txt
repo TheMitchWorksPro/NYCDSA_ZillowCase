@@ -10,6 +10,14 @@ logerror=log(Zestimate)−log(SalePrice)
 
 You are asked to predict 6 time points for all properties: October 2016 (201610), November 2016 (201611), December 2016 (201612), October 2017 (201710), November 2017 (201711), and December 2017 (201712).  Data is from 2016 for these categories:  (Los Angeles, Orange and Ventura, California).
 
+Then on another page:
+
+In the qualifying round, you’ll be building a model to improve the Zestimate residual error. In the final round, you’ll build a home valuation algorithm from the ground up, using external data sources to help engineer new features that give your model an edge over the competition.
+
+https://www.kaggle.com/c/zillow-prize-1#evaluation
+
+For each property (unique parcelid), you must predict a log error for each time point. You should be predicting 6 timepoints: October 2016 (201610), November 2016 (201611), December 2016 (201612), October 2017 (201710), November 2017 (201711), and December 2017 (201712).
+
 #######################################
 Helpful Background Research and Links
 #######################################
@@ -19,6 +27,32 @@ https://www.kaggle.com/philippsp/exploratory-analysis-zillow/code
 
 ## workflow coding example (regression)
 https://www.kaggle.com/monkeyorman/simple-linear-regression-in-r-0-0648835/code
+
+## recommendation from graduate of April Cohort:
+https://www.kaggle.com/sudalairajkumar/simple-exploration-notebook-zillow-prize
+
+##########################################################
+Ideas for General Approach and Endgame Strategies
+##########################################################
+
+##### ideas: missingness strategies #############
+1) Knn for categorical data
+2) regression for correlated values (linear)
+
+### ideas:  strategies for endgame ######
+Strategy one:
+---------------
+1) divide data into 3 groups - one for each target month we are to predict on: 201610, 201611, 201612
+   - note that sample of what our upload file will look like has 6 columns like these where we fill in first 3
+   - last 3 are for round 2 that I think starts in October
+2) model for earliest time period is based on logerror w/ min date associated to it
+3) model for latest time period is based on logerror w/ max date associated to it
+4) model for in-between date gets value associated to median date as target for prediction
+
+=======================================
+Missingness - Specific Fields
+=======================================
+1) from Shu's revised code as of 8/12 (in comments): "e.g., use latitude and longitude to impute censustract etc.""
 
 
 ###################################
@@ -39,6 +73,7 @@ Other Time-Based Fields:
 train_2016_v2.csv:
   transactiondate
 
+
 #################################################
 Location
 #################################################
@@ -52,9 +87,40 @@ Initial Thoughts and ideas
 2) initial testing done with simple models on fields w/o missing values again looking for things that seem to have no correlation to target
 3) variables with high correlation could then become areas of focus for cleanup and the final model
 4) Tom suggests doing a baseline test where we expect zestimate to be perfect, submit and then see how to adjust?
+5) Log Error histogram shows distorted pattern ... other kagglers tried removing outliers to make it look normal
+   - what if it looks that way because it was transformed?  What would it look like if transormed back to original error? (something to check)
+   - if this theory is right, maybe we predict the log and transform it to logerror?
 
 #################################
-Missing Columns
+Assignments / Schedule
 #################################
+Initial Missingness:
+--------------------
 Mitch working on: 19 - 36 except:  22-26
+All members taking about a 4th to work on
 
+------------------------
+Initial Schedule ... To Be Adjusted:
+------------------------
+8/11: Clean Columns
+8/12 - 8/13 (Sat/Sun):  EDA, Regression Factors, etc.
+8/14:  targeted to begin ML Prep
+8/19:  First Submission on Kaggle
+8/21:  Looks like last day to work on it
+8/22:  Kagel project due (reiminder first thing in morning on 22nd)
+       - looks like project is expected to be done here so we can work on our projects
+8/23:  Kagel presentations day
+
+
+################################################
+Random Code Draft Snippets
+################################################
+## Get Files - replaced in live code - preserving original
+# -----------
+properties <- fread('./input/properties_2016.csv', header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"), blank.lines.skip = TRUE,
+                    colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+                    ## na.string = common values for NA that may have been used
+dim(properties)
+
+train = fread('train_2016_v2.csv')
+full = properties %>% left_join(., train, by = 'parcelid')
