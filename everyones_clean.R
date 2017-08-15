@@ -177,9 +177,6 @@ full$lotsizesquarefeet <- NULL    # field replaced
 full$taxdelinquencyyear4d <- NULL # interim field
 taxdelinquencyyear <- NULL # field replaced
 
-### Write the data to a file
-## testing: write what we've done so far to a file
-fwrite(full, 'full_2016_step2.csv')
 
 
 #BERK
@@ -340,12 +337,16 @@ full$taxamount = ifelse(!is.na(full$taxamount), full$taxamount, #if result colum
 a = full %>% filter(., is.na(taxvaluedollarcnt))
 full$taxamount[is.na(full$taxamount)] <- mean(a$taxamount, na.rm = T)
 
-
+full$calculatedfinishedsquarefeet[is.na(full$calculatedfinishedsquarefeet)] <- mean(full$calculatedfinishedsquarefeet, na.rm = T)
 #removing bad columns
 
 col_rm = c("finishedfloor1squarefeet", "finishedsquarefeet12", "finishedsquarefeet13", "finishedsquarefeet15", 
            "finishedsquarefeet50","finishedsquarefeet6", "taxvaluedolarcnt", 'landtaxvaluedollarcnt', 'structuretaxvaluedollarcnt')
 
 full <- full[, setdiff(names(full), col_rm)]
+
+### Write the data to a file
+## testing: write what we've done so far to a file
+fwrite(full, 'clean_output.csv')
 
 
