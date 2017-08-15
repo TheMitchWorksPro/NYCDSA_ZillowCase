@@ -53,6 +53,12 @@ Strategy one:
 Missingness - Specific Fields
 =======================================
 1) from Shu's revised code as of 8/12 (in comments): "e.g., use latitude and longitude to impute censustract etc.""
+########### addtional fields (not Mitch's set) #########
+# rawcensustrackandblock, censustrackandblock
+#  * look like different numbers
+#  * guy at zillow says they are same data
+#  * censutrackandblock has more data and is integer versus string
+# censustract: idea from Shu - use latitude and longitude to impute censustract etc.
 
 
 ###################################

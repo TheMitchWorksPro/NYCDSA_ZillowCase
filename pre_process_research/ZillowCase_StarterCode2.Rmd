@@ -39,7 +39,7 @@ library(caret)
 # Setting Parallel processing
 library(doMC)
 library(parallel)
-number_of_cores <- detectCores()
+number_of_cores <- detectCores(logical=FALSE)
 registerDoMC(cores = number_of_cores/2)  ## further research:
     # http://blog.aicry.com/r-parallel-computing-in-5-minutes/
 
@@ -381,6 +381,33 @@ Analysis:
 - regionidcity shows a moderatly strong correlation to latitude
 - regionidcounty is showing a moderately strong correlation to Latitude
 - regionidcounty is showing a strong negative correlation to fips
+
+```{r}
+## trying William's code:
+library(VIM)
+wm_a = kNN(full[1:100,], variable = "taxamount", dist_var = "taxvaluedollarcnt", k=30)
+summary(wm_a)
+
+## running this code with all data crashed my machine.  That code is commented out
+
+```
+
+```{r}
+
+### these knn experiments crashed my computer
+# wm_b = kNN(full, variable = "taxamount", dist_var = "taxvaluedollarcnt", k=30)
+# ## test for Will
+# library(VIM)
+# wm_b = kNN(full, variable = "taxamount", dist_var = "taxvaluedollarcnt", k=30)
+
+```
+
+```{r}
+##
+# fwrite(full, 'full_2016_step2.csv')
+
+```
+
 
 ```{r}
 ### for later step in cleaning process ... basic code to convert all specified string columns to factors from the df

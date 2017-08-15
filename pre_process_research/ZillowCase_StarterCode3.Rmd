@@ -1,0 +1,254 @@
+---
+title: "Zillow Case Project - Starter Code 1"
+author: "TheMitchWorksPro"
+date: "8/9/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Code Testing for Data Cleaning
+Set this up to test ideas for cleaning the code
+
+```{r libSetup, warning=FALSE}
+## library list from here:
+# https://www.kaggle.com/philippsp/exploratory-analysis-zillow/notebook
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(corrplot)
+# library(leaflet)
+library(lubridate)
+
+## few more
+library(stringi)
+library(caret)    # also needed in connection w/ parallel processing
+
+```
+
+```{r}
+
+###### commented out for now ... kept crashing #######
+# # Setting Parallel processing
+# library(doMC)
+# library(parallel)
+# number_of_cores <- detectCores(logical=FALSE)
+# registerDoMC(cores = number_of_cores/2)  ## further research:
+#     # http://blog.aicry.com/r-parallel-computing-in-5-minutes/
+
+```
+
+
+```{r}
+### original values before adding skip blank rows argument for comparison ... none were eliminated
+# Read 2985217 rows and 58 (of 58) columns from 0.604 GB file in 00:00:07
+# [1] 2985217      58
+
+# datDir <- "./input/"
+# homePropertiesFile <- "properties_2016.csv"
+# logErrorDataFile <- "train_2016_v2.csv"
+# 
+# properties <- fread(paste0(datDir, homePropertiesFile), header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"),
+#                    blank.lines.skip = TRUE,
+#                    colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+#                                                    ## na.string = common values for NA that may have been used
+# dim(properties)
+# 
+# train = fread(paste0(datDir, logErrorDataFile))
+# full = properties %>% left_join(., train, by = 'parcelid')
+
+### data from previous file exported to this file so can pick up where left off:
+
+full <- fread("full_2016_step2.csv", header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"),
+                   blank.lines.skip = TRUE,
+                   colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+                                                   ## na.string = common values for NA that may have been used
+
+```
+
+```{r}
+## from working file ... my field list:
+
+######### Planning:  Fields To Be Done ###############
+#  fips: Federal Information Processing Standard code: https://en.wikipedia.org/wiki/FIPS_county_code
+#        missing: 0.3831212
+# 'latitude' - same missingness %    ## filter w/ comparisons of fips, lat, long shows they are all missing on same rows
+# 'longitude' - same missingness %   ## see startercode1 for these tests (filter w/ one na and one not produced 0 rows)
+#               idea:  calculate mean lat/long by cityregionID
+#                      use these means to impute missing values
+#                      attempt to get associated fip to nearest mean lat/long ?
+##
+### do mean of zip and find related lat/long and use for missing values?  what about fip?
+#   
+# 'poolcnt'  => 82.6634379    number pools on lot if any
+# 'pooltypeid7' => 83.7378991 ... pool w/o hottub
+
+######### fields in this section (done) #####################
+# hashottuborspa
+# fireplaceflag
+# fireplacecnt
+# taxdelinquencyflag
+# taxdelinquencyyear => interim field: taxdelinquencyyear4d => replace w/: taxdelinquencyNoYrs
+# numberofstories => 77.1517782 (missing b4 cleanup)
+#    * related: 'storytypeid' => basement, split level, etc.
+# 'lotsizesquarefeet': 9.2488754 missingness b4 imputation => replace w/: full$lotsizesqft_imputed
+
+## fields added:
+# taxdelinquencyNoYrs - replaces all other taxdelinquencyyear fields
+# lotsizesqft_imputed - replaces lotsizesquarefeet
+
+## fields to drop:
+# taxdelinquencyyear - replaced w/ imputed field
+# taxdelinquencyyear4d - created as interim step in data cleaning
+# taxdelinquiencyflag ? - if has No years delinq then this is true / no new info
+# fireplaceflag? - should be included in work done on fireplacecnt
+# lotsizesquarefeet - replaced w/ imputed field
+# 'poolsizesum' => 99.0633847 Missinness %,  sq ft all pools
+# 'pooltypeid10' => 98.x Missingness % ... spa or hottub
+# 'pooltypeid2' =>  98.x Missingness $ ... pool w/ spa or hottub
+
+
+```
+
+```{r}
+head(full)
+```
+
+```{r}
+## check fieldset done so far ...
+full %>% select(hashottuborspa, fireplaceflag, fireplacecnt, taxdelinquencyflag, 
+                taxdelinquencyNoYrs, numberofstories, lotsizesqft_imputed) %>% summary()
+
+```
+
+
+```{r}
+## fieldset to work on:
+full %>% select(fips, latitude, longitude, poolcnt, poolsizesum, pooltypeid10, pooltypeid2, pooltypeid7) %>% summary()
+
+```
+
+## Failed Linear Models
+
+```{r}
+# full$regionidcounty
+# full$fips
+
+fips.impute.model <- lm(fips ~ regionidcounty, data=full) 
+summary(fips.impute.model)
+
+```
+
+```{r}
+# target: regionidzip regionidcity
+# predictors:  latitude longitude  fips regionidcounty
+
+## theory: build model for the target fields
+##         then use newly populated fields to help build models for other fields to impute?
+
+fips.impute.model2 <- lm(regionidzip ~ latitude + longitude + fips + regionidcounty, data=full) 
+summary(fips.impute.model2)
+
+```
+
+```{r}
+
+fips.impute.model2b <- lm(regionidcity ~ latitude + longitude + fips + regionidcounty, data=full) 
+summary(fips.impute.model2b)
+
+```
+
+```{r}
+
+fips.impute.model2 <- lm(regionidzip ~ latitude + longitude, data=full) 
+summary(fips.impute.model2)
+
+```
+
+```{r}
+fips.impute.model <- lm(fips ~ regionidcity, data=full) 
+summary(fips.impute.model)
+
+```
+
+```{r}
+fips.impute.model <- lm(latitude ~ regionidcity, data=full) 
+summary(fips.impute.model)
+
+```
+
+
+
+```{r}
+
+impute.model.tmp <- lm(fips ~ calculatedfinishedsquarefeet + regionidcity + taxamount, data=full) 
+summary(impute.model.tmp)
+# calculatedfinishedsquarefeet 
+# regionidcity 
+# landtaxvaluedollarcnt   taxamount
+
+```
+
+```{r}
+# library(VIM)
+# knnTst = kNN(full, variable = "fips", dist_var = c("taxvaluedollarcnt", "rawcensustractandblock"), k=5)
+# crashed my system
+
+```
+
+```{r}
+percentMissingNess <- colSums(is.na(full)) * 100 / nrow(full)
+percentMissingNess[percentMissingNess < 2 & percentMissingNess > 0]
+
+```
+
+```{r}
+full %>% filter(is.na(fips) & !is.na(taxvaluedollarcnt)) 
+```
+
+
+```{r}
+
+full <- full %>% mutate(fips_factor = as.factor(fips),
+                        regionidcounty_factor = as.factor(regionidcounty),
+                        latitude_factor = as.factor(latitude),
+                        longitude_factor = as.factor(longitude))
+head(full)
+
+```
+
+```{r}
+
+#               idea:  calculate mean lat/long by cityregionID
+#                      use these means to impute missing values
+#                      attempt to get associated fip to nearest mean lat/long ?
+
+# fips and lat/long are blank together according to md.package()
+
+full <- full %>% mutate(mean_crid = mean(full$regionidcity))
+full %>% filter(is.na(fips & !is.na(mean_crid))) %>% select(fips, mean_crid)
+
+```
+```{r}
+# full$poolsizesum <- NULL
+full$mean_crid <- NULL
+head(full)
+
+```
+
+```{r}
+full %>% filter(is.na(poolcnt & !is.na(pooltypeid7))) %>% select(poolcnt, pooltypeid7)
+full %>% filter(is.na(pooltypeid7 & !is.na(poolcnt))) %>% select(poolcnt, pooltypeid7)
+
+```
+
+```{r}
+full <- %>% mutate
+```
+

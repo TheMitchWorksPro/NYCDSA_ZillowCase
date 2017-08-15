@@ -18,6 +18,18 @@ datDir <- "./input/"
 homePropertiesFile <- "properties_2016.csv"
 logErrorDataFile <- "train_2016_v2.csv"
 
+# Import libraries
+library(caret)
+
+##### experimented with this but system kept crashing:
+# Setting Parallel processing
+# library(doMC)
+# library(parallel)
+# number_of_cores <- detectCores(logical=FALSE)
+# registerDoMC(cores = number_of_cores/2)  ## further research:
+# registerDoMC(cores = 2)
+# http://blog.aicry.com/r-parallel-computing-in-5-minutes/
+
 # get files
 # ----------------
 
@@ -36,24 +48,11 @@ stats_mode <- function(x) {
   names(which.max(table(x)))
 }
 
-######### Planning:  Fields To Be Done ###############
+######### fields in this section #####################
 #  fips: Federal Information Processing Standard code: https://en.wikipedia.org/wiki/FIPS_county_code
-#        missing: 0.3831212
+#        missing: 0.3831212 => note: this is less than 1 percent, not 38%
 # 'latitude' - same missingness %    ## filter w/ comparisons of fips, lat, long shows they are all missing on same rows
 # 'longitude' - same missingness %   ## see startercode1 for these tests (filter w/ one na and one not produced 0 rows)
-#               idea:  calculate mean lat/long by cityregionID
-#                      use these means to impute missing values
-#                      attempt to get associated fip to nearest mean lat/long ?
-##
-### do mean of zip and find related lat/long and use for missing values?  what about fip?
-#   
-# 'poolcnt'  => 82.6634379    number pools on lot if any
-# 'poolsizesum' => 99.0633847 sq ft all pools
-# 'pooltypeid10' => 98.x ... spa or hottub
-# 'pooltypeid2' =>  98.x ... pool w/ spa or hottub
-# 'pooltypeid7' => 83.7378991 ... pool w/o hottub
-
-######### fields in this section #####################
 # hashottuborspa
 # fireplaceflag
 # fireplacecnt
@@ -62,6 +61,7 @@ stats_mode <- function(x) {
 # numberofstories => 77.1517782 (missing b4 cleanup)
 #    * related: 'storytypeid' => basement, split level, etc.
 # 'lotsizesquarefeet': 9.2488754 missingness b4 imputation => replace w/: full$lotsizesqft_imputed
+# 'poolcnt'  => 82.6634379    number pools on lot if any
 
 ## Missingness Cleanup: step 1
 ##  * These cells, it makes sense that NA is most likely False
@@ -71,7 +71,8 @@ full <- full %>%
   mutate(taxdelinquencyflag = ifelse(is.na(taxdelinquencyflag), 0, ifelse(taxdelinquencyflag =="Y", 1, taxdelinquencyflag)),
          hashottuborspa = ifelse(is.na(hashottuborspa), 0, ifelse(hashottuborspa =="true", 1, hashottuborspa)),
          fireplaceflag = ifelse(is.na(fireplaceflag), 0, ifelse(fireplaceflag =="true", 1, fireplaceflag)),
-         fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt)
+         fireplacecnt = ifelse(is.na(fireplacecnt), 0, fireplacecnt),
+         poolcnt = ifelse(is.na(poolcnt), 0, poolcnt)
   )
 
 ## Missingness Cleanup: step 2
@@ -79,6 +80,8 @@ full <- full %>%
 ##  * if fireplacecount > 0, then fireplaceflag should be 1 for true
 ##  * conversely, if fireplacecnt is 0 and fireplaceflag is true, replace count with -1 so we can 
 ##                investigate for imputation
+##  * most homes do not have a pool - without good data on % homes with/without pool for the 3 target counties
+##    it makes sense to just infer that NA is probably usually 0
 
 full <- full %>%  
   mutate(taxdelinquencyflag = ifelse(!is.na(taxdelinquencyyear) & taxdelinquencyflag==0, 1, taxdelinquencyflag),
@@ -115,17 +118,32 @@ full <- full %>% mutate(taxdelinquencyyear4d = ifelse(is.na(taxdelinquencyyear),
 full <- full %>%  
   mutate(taxdelinquencyNoYrs = ifelse(taxdelinquencyyear4d == 0, 0, curYear - taxdelinquencyyear4d + 1))
 
-
 ## Missingness Cleanup: step 3
 #  Fields in this section are all different, see comments with each one
+
+full <- full %>%
+  mutate(latitude = latitude/1e6, longitude = longitude/1e6)   ## from NYC DSA Analysis:  correct Lat/Long to proper numbers
 
 mode1 = stats_mode(full$numberofstories)
 
 full <- full %>%  
-  mutate(numberofstories = ifelse(is.na(numberofstories), mode1, numberofstories)
+  mutate(numberofstories = ifelse(is.na(numberofstories), mode1, numberofstories),
+         fips = ifelse(is.na(fips), mode1, fips),
+         latitude = ifelse(is.na(latitude), mode1, latitude),
+         longitude = ifelse(is.na(longitude), mode1, longitude)         
   )  ## impute with mode ... all homes have at least 1 floor (in this case mode is 1 also)
      ## note: this mode in our data cannot be generalized outside the 3 counties we were given
      ##       this article suggests it is a local bias:  http://www.redwagonteam.com/single-story-homes-sale/
+
+     ## impute with mode for these fields since we are affecting less than 1% of data anyway:
+     #  fips: Federal Information Processing Standard code: https://en.wikipedia.org/wiki/FIPS_county_code
+     #        missing: 0.3831212 => note: this is less than 1 percent, not 38%
+     # 'latitude' - same missingness %    ## filter w/ comparisons of fips, lat, long shows they are all missing on same rows
+     # 'longitude' - same missingness %   ## see startercode1 for these tests (filter w/ one na and one not produced 0 rows)
+     #               idea:  calculate mean lat/long by cityregionID
+     #                      use these means to impute missing values
+     #                      attempt to get associated fip to nearest mean lat/long ?
+
 
 ## in 2016 data, see research file showing that properties with floors greater than 5 appear to be dirty data
 #  this rule may not apply to the 2017 data and will either need validation or to be commented out on future data
@@ -144,14 +162,23 @@ full$lotsizesqft_imputed <- Hmisc::impute(full$lotsizesquarefeet, "random")
   ##            how to fix this data?
 
 
-### from NYC DSA Analysis:  correct Lat/Long to proper numbers
-full <- full %>%
-  mutate(latitude = latitude/1e6, longitude = longitude/1e6)
+### fields for removal:
+# 'poolsizesum' => 99.0633847 sq ft all pools
+# 'pooltypeid10' => 98.x ... spa or hottub
+# 'pooltypeid2' =>  98.x ... pool w/ spa or hottub
+# 'pooltypeid7' => 83.7378991 ... pool w/o hottub'
+#  - checked by query: no useful info to help impute other fields and redundant with other pool field
 
-########### addtional fields (not Mitch's set) #########
-# rawcensustrackandblock, censustrackandblock
-#  * look like different numbers
-#  * guy at zillow says they are same data
-#  * censutrackandblock has more data and is integer versus string
-# censustract: idea from Shu - use latitude and longitude to impute censustract etc.
+full$poolsizesum <- NULL
+full$pooltypeid10 <- NULL
+full$pooltypeid2 <- NULL
+full$pooltypeid7 <- NULL
+full$lotsizesquarefeet <- NULL    # field replaced
+full$taxdelinquencyyear4d <- NULL # interim field
+taxdelinquencyyear <- NULL # field replaced
+
+### Write the data to a file
+## testing: write what we've done so far to a file
+fwrite(full, 'full_2016_step2.csv')
+
 
