@@ -129,9 +129,7 @@ mode1 = stats_mode(full$numberofstories)
 
 full <- full %>%  
   mutate(numberofstories = ifelse(is.na(numberofstories), mode1, numberofstories),
-         fips = ifelse(is.na(fips), mode1, fips),
-         latitude = ifelse(is.na(latitude), mode1, latitude),
-         longitude = ifelse(is.na(longitude), mode1, longitude)         
+         fips = ifelse(is.na(fips), "6037", fips)
   )  ## impute with mode ... all homes have at least 1 floor (in this case mode is 1 also)
      ## note: this mode in our data cannot be generalized outside the 3 counties we were given
      ##       this article suggests it is a local bias:  http://www.redwagonteam.com/single-story-homes-sale/
@@ -358,6 +356,9 @@ full$calculatedfinishedsquarefeet <- Hmisc::impute(full$calculatedfinishedsquare
 full = full %>% select(-rawcensustractandblock)
 full$censustractandblock <- Hmisc::impute(full$censustractandblock, "random")
 full$propertylandusetypeid = Hmisc::impute(full$propertylandusetypeid, "random")
+full$latitude = Hmisc::impute(full$latitude, "random")
+full$longitude = Hmisc::impute(full$longitude, "random")
+
 full$regionidcounty = Hmisc::impute(full$regionidcounty, "random")
 full$regionidcity = Hmisc::impute(full$regionidcity, "random")
 full$regionidzip = Hmisc::impute(full$regionidzip, "random")
@@ -368,6 +369,7 @@ full = full %>% select(-assessmentyear)
 full = full %>% select(-regionidneighborhood)
 full = full %>% select(-propertyzoningdesc)
 full$propertycountylandusecode = Hmisc::impute(full$propertycountylandusecode, "random")
-fwrite(full, 'clean_output.csv')
+
+# fwrite(full, 'clean_output.csv')
 
 
