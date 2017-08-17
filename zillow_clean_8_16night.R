@@ -370,6 +370,7 @@ full = full %>% select(-regionidneighborhood)
 full = full %>% select(-propertyzoningdesc)
 full$propertycountylandusecode = Hmisc::impute(full$propertycountylandusecode, "random")
 
-# fwrite(full, 'clean_output.csv')
+rm(lm1)
+fwrite(full, 'clean_output.csv')
 
 
