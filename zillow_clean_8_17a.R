@@ -390,7 +390,7 @@ fwrite(full, 'clean_output.csv')  ## this is all of the data
   
 ## to do training and test - need version that has no NAs in LogError Field
 full_TrainTest <- full %>% filter(!is.na(full$logerror))
-fwrite(full, 'clean_TrainTest_output.csv')  ## this is all of the data
+fwrite(full_TrainTest, 'clean_TrainTest_output.csv')  ## this is all of the data
 
 
 

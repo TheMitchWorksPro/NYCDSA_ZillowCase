@@ -3,6 +3,11 @@
 GOAL OF PROJECT
 ######################################
 
+------------
+Will:  we predict the error, they subtract it from their model and it is like error correction to make the model better.
+Metric used:  mean absolute squared error:  absolute value of the differece between prediction and actual log-error
+------------
+
 In this competition, Zillow is asking you to predict the log-error between their Zestimate and the actual sale price, given all the features of a home. 
 The log error is defined as
 
@@ -47,7 +52,7 @@ Strategy one:
    - last 3 are for round 2 that I think starts in October
 2) model for earliest time period is based on logerror w/ min date associated to it
 3) model for latest time period is based on logerror w/ max date associated to it
-4) model for in-between date gets value associated to median date as target for prediction
+4) model for in-between date gets value associated to mean or median date as target for prediction
 
 =======================================
 Missingness - Specific Fields
@@ -130,3 +135,85 @@ dim(properties)
 
 train = fread('train_2016_v2.csv')
 full = properties %>% left_join(., train, by = 'parcelid')
+
+####################################################
+8/16/2017 Notes
+####################################################
+Issues with factors:
+--------------------
+Latitude
+Longitude
+
+multi linear submitted
+3 more models
+
+then could do xgboost
+
+-------------------------------------
+## will's changes as of 8/16/2017:
+-------------------------------------
+
+full$fips=as.factor(full$fips)
+full$latitude = as.numeric(full$latitude)
+full$longitude = as.numeric(full$longitude)
+full$numberofstories = as.factor(full$numberofstories)
+full$propertycountylandusecode = as.factor(full$propertycountylandusecode) 
+## but propertycountylandusecod sucks and should be avoided
+
+censustrackandblock
+  - fips + track# + block$ (track is 4 digits)
+
+fireplaceflag ## field is fine
+
+fullbathroomcnt => for linear regression make this numeric
+hottuborspa => binary
+heatingorsystemtypeid = 13 used to impute nas because 13 = "none" in data dictionary
+  * making this 2 or not 2 which means central or not central
+
+10+ factors:  terrible p-values and ran slow (less meaningful coefficients)
+
+##############################
+merged DF
+##############################
+* Early models trained based on a mean logerror by date probably without a date column
+* this is what we call "full"
+* do we want different strategies with date field as predictive?
+* how would we use what we have to get where i want to go?
+
+Random things to look into (time permitting):
+-------------------------------------------
+glm() ... for multi logistical regression?
+
+ideas:
+- knn crashes - puts too much in memory up front?
+  - could we sample the data in 100K record sets
+  - do Knn, then sample from that and do knn on top
+    - if we do this, do we compound errors or compound information from past knn border into new one?
+    - to do this:  need to preserve index as well as values in random sets so we get all data
+    -              and so we know what and how to bring data back together for the answers?
+  - Might not need to use all data to do this ... predict goes in small sets so as not to crash
+  - based on what the model did on smaller data
+
+------------------------
+Clustering as a solution?
+--------------------------
+could we take bad factors and cluster them down to a small number of solutions that could then be averaged for an answer?
+
+Bad Idea: recorded for future thought:
+Could we convert a factor to numeric values - one for each factor ... and use PCA to reduce?  
+ - Would it help or hurt predictability?
+ - How would you explain what got combined after you did it?
+ - lecture seems to imply this would not work ... (early in lecture)
+ - later in lecture: based on how this works, converting columns to numbers to feed them in would lose all meaning (late in lecture)
+ - this would require some very complex thought about how to convert columns to meaningful numbers that could be parsed.
+
+Weird idea:  
+- get frequency counts of certain categories grouped by some location factor
+- is there a way to model to figure out which frequncies are important and then use in yet another model?
+- does PCA help here?  (just random unformed thoughts to be considered later)
+
+
+#######################
+Shu Jumpstart Python
+#######################
+* was going to put notes here ... forget what they are now ...
