@@ -83,3 +83,41 @@ These are different ... even though they seem to correlate to the 3 counties in 
    6037    6059    6111 
 2020799  741565  222853 
 > 
+
+---------------------------------------------
+Factors Created During Cleaning
+---------------------------------------------
+
+#WILL
+full <- full %>% 
+  mutate(heatingorsystemtypeid = as.factor(ifelse(is.na(heatingorsystemtypeid), 
+                                                  "13", heatingorsystemtypeid)))
+
+full <- full %>% 
+  mutate(fullbathcnt = as.factor(ifelse(is.na(fullbathcnt),0,fullbathcnt)))
+
+---------------------------------
+More Experimentation w/ Factors
+---------------------------------
+From a model that would not run ... this code could be used to understand potential factors in the data set:
+
+test_trainData$heatingorsystemtypeid = as.factor(test_trainData$heatingorsystemtypeid)  # originally set in cleaning file
+test_trainData$fullbathcnt = as.factor(test_trainData$fullbathcnt)                      # originally set in cleaning file
+
+## location data:
+test_trainData$fips = as.factor(test_trainData$fips)                      ## warning: use one or the other, not both fips/county
+test_trainData$regionidcounty = as.factor(test_trainData$regionidcounty)  ## warning: use one or the other, not both fips/county
+# test_trainData$latitude = as.factor(test_trainData$latitude)
+# test_trainData$longitude = as.factor(test_trainData$longitude)
+test_trainData$fips = as.factor(test_trainData$fips)
+# test_trainData$regionidzip = as.factor(test_trainData$regionidzip)
+# test_trainData$regionidcity = as.factor(test_trainData$regionidcity)  # 177 levels
+
+# other factors:
+test_trainData$airconditioningtypeid = as.factor(test_trainData$airconditioningtypeid)
+test_trainData$buildingqualitytypeid = as.factor(test_trainData$buildingqualitytypeid)
+test_trainData$decktypeid = as.factor(test_trainData$decktypeid)
+test_trainData$heatingorsystemtypeid = as.factor(test_trainData$heatingorsystemtypeid)
+# test_trainData$propertycountylandusecode = as.factor(test_trainData$propertycountylandusecode) ## 77 w/ limit of 53?
+test_trainData$propertylandusetypeid = as.factor(test_trainData$propertylandusetypeid)
+# test_trainData$censustractandblock = as.factor(test_trainData$censustractandblock)  # 42585 categories? ... not helpful
