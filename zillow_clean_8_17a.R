@@ -44,6 +44,7 @@ dim(properties)
 train = fread(paste0(datDir, logErrorDataFile))
 train1 = train %>% group_by(., parcelid) %>% summarise('logerror'=mean(logerror)) #getting rid of duplicates WILL
 full = properties %>% left_join(., train1, by = 'parcelid')
+# full_w_Dates = properties %>% left_join(., train, by = 'parcelid')
 zillow_clean = full
 
 ### DF input to cleaning process = full #########
@@ -331,6 +332,22 @@ full <- full %>%
 #An imputation for taxamount from taxvaluedollarcnt (may include landvaluedollarcnt later)
 lm1 = lm(formula = taxamount ~ taxvaluedollarcnt, data = full)
 
+## test results for above model:
+# Call:
+#   lm(formula = taxamount ~ taxvaluedollarcnt, data = full)
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -862470    -349    -134     103 1871995 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)       2.411e+02  1.957e+00   123.2   <2e-16 ***
+#   taxvaluedollarcnt 1.229e-02  2.368e-06  5192.8   <2e-16 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# Residual standard error: 2883 on 2930063 degrees of freedom
+# (55152 observations deleted due to missingness)
+# Multiple R-squared:  0.902,	Adjusted R-squared:  0.902 
+# F-statistic: 2.697e+07 on 1 and 2930063 DF,  p-value: < 2.2e-16
 
 full$taxamount = ifelse(!is.na(full$taxamount), full$taxamount, #if result column is nonempty, return result
                         ifelse(is.na(full$taxvaluedollarcnt), NA, #if result column IS empty, if helper is empty too

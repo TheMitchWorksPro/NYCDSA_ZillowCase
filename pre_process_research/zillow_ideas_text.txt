@@ -28,13 +28,16 @@ Helpful Background Research and Links
 #######################################
 
 ## EDA Coding example as Markdown
-https://www.kaggle.com/philippsp/exploratory-analysis-zillow/code
+- https://www.kaggle.com/philippsp/exploratory-analysis-zillow/code
 
 ## workflow coding example (regression)
-https://www.kaggle.com/monkeyorman/simple-linear-regression-in-r-0-0648835/code
+- https://www.kaggle.com/monkeyorman/simple-linear-regression-in-r-0-0648835/code
 
 ## recommendation from graduate of April Cohort:
-https://www.kaggle.com/sudalairajkumar/simple-exploration-notebook-zillow-prize
+- https://www.kaggle.com/sudalairajkumar/simple-exploration-notebook-zillow-prize
+
+## other links to discussions and posts on zillo competition
+- https://www.kaggle.com/c/zillow-prize-1/discussion/34168
 
 ##########################################################
 Ideas for General Approach and Endgame Strategies
@@ -212,6 +215,11 @@ Weird idea:
 - is there a way to model to figure out which frequncies are important and then use in yet another model?
 - does PCA help here?  (just random unformed thoughts to be considered later)
 
+------------------------------
+Notes for linear Relationships
+-------------------------------
+strong correlation:
+lm1 used in cleaning/imputation:  90% r^2, model: lm(formula = taxamount ~ taxvaluedollarcnt, data = full)
 
 #######################
 Shu Jumpstart Python

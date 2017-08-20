@@ -37,6 +37,7 @@ Folders To Refer To:
 ------------------------
 - EDA_Source - Original Code files used as source for files in EDA section
 - draft_code has all other draft content
+- pre_process_research: data dictionaries, ideas and notes, field lists, random screenshots, etc.
 
 EDA
 ------------------------
