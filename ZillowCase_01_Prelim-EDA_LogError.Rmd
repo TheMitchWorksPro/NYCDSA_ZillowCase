@@ -1,0 +1,109 @@
+---
+title: "EDA - Exploring LogError"
+author: "Team ZillowCase"
+date: "8/20/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r setupCell1, warning=FALSE}
+## libraries and other setup code may include things that were not actually used in this document
+## it is amalgamated from many working files
+
+#setwd('~/Desktop/zillow/input/')
+library(corrplot)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(lubridate)
+library(stringi)
+library(Hmisc)
+library(car)
+
+# train = fread('train_2016_v2.csv')
+# properties = fread('properties_2016.csv')
+# full = properties %>% left_join(., train, by = 'parcelid')
+
+full_clean <- fread('clean_output.csv')  ## output from cleaning script: 2.3Million records (w and w/o logerror)
+
+```
+
+```{r tstcell, eval=FALSE, echo=FALSE}
+# this cell is excludeded from knitted output
+head(full_clean)
+
+```
+
+
+```{r}
+
+## set up data ...
+train_s1 = full_clean[!is.na(full_clean$logerror), ]
+test_s1 = full_clean[is.na(full_clean$logerror), ]
+# splitting out merged data frame into test and train
+p = sample(1:nrow(train_s1), 7*nrow(train_s1)/10)
+# making a sample
+sub_train = train_s1[p, ]
+# sub train is now the training portion of our train set
+sub_test = train_s1[-p, ]
+# sub test is now the test portion of our train set
+
+```
+
+
+```{r}
+## histogram on logerror
+ggplot(train_s1) + geom_histogram(aes(logerror), bins = 120)  # started w/ 30 and increased granularity up to this point
+                                                             # lower than 30 was mostly just a fat central box
+```
+
+
+```{r}
+logerror = as.data.frame(table(train_s1$logerror))
+colnames(logerror) = c("logerror", "freq")
+logerror2 = logerror %>% arrange(desc(freq))
+
+logerror_positive = train_s1$logerror[train_s1$logerror > 0]
+logerror_negative = train_s1$logerror[train_s1$logerror < 0]
+
+# logerror - stand dev. Pos/Neg:
+sd(logerror_positive)
+sd(logerror_negative)
+
+```
+
+```{r}
+
+## positive / negative logerror summary
+summary(logerror_positive)
+summary(logerror_negative)
+
+```
+
+
+```{r}
+
+ggplot(data = data.frame(logerror_positive), aes(x = logerror_positive)) + geom_histogram(bins = 50)
+ggplot(data = data.frame(logerror_negative), aes(x = logerror_negative)) + geom_histogram(bins = 50)
+ggplot(data = data.frame(logerror_positive), aes(x = logerror_positive)) + geom_density()
+# looking at the positive vs negative logerror
+```
+```{r}
+
+
+```
+
+```{r}
+## 
+
+```
+

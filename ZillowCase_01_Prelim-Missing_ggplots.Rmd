@@ -1,0 +1,77 @@
+---
+title: "Zillow Case Missingness Visualization Experiment"
+author: "Team ZillowCase"
+date: "8/20/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# from start of script
+# MBerkowitz EDA
+
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(corrplot)
+library(lubridate)
+library(stringi)
+library(Hmisc)
+library(car)
+
+```
+
+```{r}
+# datDir <- "./input/"
+datDir <- ""
+homePropertiesFile <- "properties_2016.csv"
+logErrorDataFile <- "train_2016_v2.csv"
+properties <- fread(paste0(datDir, homePropertiesFile), header=TRUE, na.strings=c("", " ", "NA", "N/A", "null"),
+                    blank.lines.skip = TRUE,
+                    colClasses=list(character=50))  ## eliminates warning so we know nothing else is wrong
+train = fread(paste0(datDir, logErrorDataFile))
+full2 = properties %>% left_join(., train, by = 'parcelid')
+m_train = full2[!is.na(full2$logerror), ]
+```
+
+
+```{r}
+
+missing_cols = apply(m_train, 1, function(x) sum(is.na(x)))
+# finding the number of missing columns per parcel id 
+m_train$missing_cols = missing_cols
+# adding a new column for missing rows
+
+missing_combinations = m_train %>% group_by(missing_cols) %>% 
+  summarise(number = n(), mean_abs = mean(abs(logerror)), sd = sd(logerror))
+# getting the number of missing combinations
+
+missing_combinations$percent_missing = missing_combinations$number/sum(missing_combinations$number)*100
+# adding in percentages ## number = number of rows with x missing_cols
+missing_combinations
+
+```
+
+
+```{r}
+
+ggplot(data = m_train, aes(x = missing_cols, y = logerror)) + geom_point()
+# looks strange
+
+ggplot(data = missing_combinations, aes(x = missing_cols, y = number)) + geom_col()
+# plotting missing combinations
+
+ggplot(data = missing_combinations, aes(x = missing_cols, y = mean_abs)) + geom_col()
+# plotting # missing columns against mean absolute logerror
+
+ggplot(data = missing_combinations, aes(x = missing_cols, y = sd)) + geom_col()
+# # missing columns against sd--- see an upward trend here
+
+```
+

@@ -1,0 +1,88 @@
+---
+title: "Team ZillowCase Preliminary EDA"
+author: "Team ZillowCase"
+date: "8/19/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## EDA Visualization
+
+This document assembles various visualizations that were helpful in preprocessing and preparations ahead of 
+most of the real machine learning and model building for the data set.  
+
+```{r setupCell1, warning=FALSE}
+## libraries and other setup code may include things that were not actually used in this document
+## it is amalgamated from many working files
+
+#setwd('~/Desktop/zillow/input/')
+library(corrplot)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(lubridate)
+library(stringi)
+library(Hmisc)
+library(car)
+
+train = fread('train_2016_v2.csv')
+properties = fread('properties_2016.csv')
+full = properties %>% left_join(., train, by = 'parcelid')
+# sub=select(full, starts_with(c('finishedsquarefeet','logerror'))) ## not working ...
+
+```
+
+### Missingness Related Corplots
+
+```{r}
+a=full[grepl('finishedsquare|logerror', names(full))]
+corrplot(cor(a,use = "pairwise.complete.obs"))
+
+```
+
+
+```{r}
+
+full_set1 = full[!grepl('finishedsquare', 
+                     names(full)[!grepl('calculatedfinishedsquare',names(full))])]
+full_set1$hashottuborspa[full_set1$hashottuborspa==""]="false"
+full_set1$hasheat = !is.na(full_set1$heatingorsystemtypeid) #added column to say T/F for having heat based on NAs
+corrplot(cor(full[grepl('dollarcnt', names(full))], use = "pairwise.complete.obs"))
+
+```
+
+
+```{r}
+
+# help with using grep/grepl in this context:
+#      https://awakeningdatascientist.wordpress.com/2015/07/20/r-of-the-day-grep-and-grepl/
+
+tmpCols1 = full[grepl('regionidcity|latitude|longitude|fips', names(full))]
+tmpCols1 = as.data.frame(sapply(tmpCols1, as.numeric))  # note: fips factor converted to level values: 1,2,3
+tmpCols2 = full[grepl('region|fips|latitude|longitude', names(full))]
+tmpCols2 = as.data.frame(sapply(tmpCols2, as.numeric))  # note: fips factor converted to level values: 1,2,3
+## convert to numeric first to use in cor plot (see above):
+corrplot(cor(tmpCols1, use = "pairwise.complete.obs"))
+
+```
+
+```{r}
+
+corrplot(cor(tmpCols2, use="pairwise.complete.obs"))
+
+```
+
+ - Longitude shows a moderately strong negative correlation to latitude.
+ - regionidcity shows a moderatly strong correlation to latitude
+ - regionidcounty is showing a moderately strong correlation to Latitude
+ - regionidcounty is showing a strong negative correlation to fips
+ 
+ 

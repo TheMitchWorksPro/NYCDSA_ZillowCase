@@ -1,0 +1,56 @@
+
+#######################################
+Files Guide
+#######################################
+
+Create Clean Dataframe (as csv) => output of data cleaning scripts:
+----------------------------------
+- zillow_clean_8_17a.R
+- zillow_clean_8_17a_copy_wDates.R
+- ZC_Reusable_Code.R => code used for analysis in other scripts reorganized as reusable functions
+
+These files use the following inputs (from zillow/kaggle competition)
+- properties_2016.csv
+- train_2016_v2.csv
+- sample_submission.csv
+
+They output:
+-----------------------------------
+without transaction date field (and logerror as mean):
+- clean_output.csv
+- clean_TrainTest_output.csv
+
+with transaction date field and (logerror unmodified from original):
+- clean_output_wDates.csv
+- clean_TrainTest_output_wDates.csv
+
+Files ending in "_TrainTest" have about 90k records or so (merge has value for logerror in all records)
+Files without this extension have close to 3M records where most have NA in the LogError fields
+-----------------------------------
+
+Scripts beyond this point expect the output of the above scripts as inputs.
+While cleaning scripts expected inputs in an "input" directory, EDA scripts
+were run from a data directory or with setwd() set to it so the script did not need
+to specify it.
+
+Folders To Refer To:
+------------------------
+- EDA_Source - Original Code files used as source for files in EDA section
+- draft_code has all other draft content
+
+EDA
+------------------------
+This should be an amaglam of the best EDA of the team
+Organized to make it easier to find what we need for the final presentation
+
+A series of R Markdown files on related content has been organized with 
+file naming conventions starting with: "ZillowCase_01_Prelim."
+
+If EDA files are structured from later in the process, they can get 02, etc.
+
+Machine Learning and Modeling
+--------------------------------
+
+* There are a few preliminary models in EDA files (linear)
+* R code for machine learning is in root of project (original unaltered files)
+

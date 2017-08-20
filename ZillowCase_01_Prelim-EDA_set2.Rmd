@@ -1,0 +1,224 @@
+---
+title: "Zillow_Case_01_Prelim-EDA_set2"
+author: "Team ZillowCase"
+date: "8/20/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## EDA Visualization - Set II
+
+This document assembles various visualizations that were helpful in preprocessing and preparations ahead of 
+most of the real machine learning and model building for the data set.  Models in this file were presented as part
+of EDA though some may get reused later in the research.
+
+```{r setupCell1, warning=FALSE}
+## libraries and other setup code may include things that were not actually used in this document
+## it is amalgamated from many working files
+
+#setwd('~/Desktop/zillow/input/')
+library(corrplot)
+library(ggplot2)
+library(dplyr)
+library(data.table)
+
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(lubridate)
+library(stringi)
+library(Hmisc)
+library(car)
+
+# train = fread('train_2016_v2.csv')
+# properties = fread('properties_2016.csv')
+# full = properties %>% left_join(., train, by = 'parcelid')
+
+full_clean <- fread('clean_output.csv')  ## output from cleaning script: 2.3Million records (w and w/o logerror)
+
+```
+
+
+### Missingness and Data Exploration using Models And Other Visualizations
+
+```{r}
+
+## set up data ...
+train_s1 = full_clean[!is.na(full_clean$logerror), ]
+test_s1 = full_clean[is.na(full_clean$logerror), ]
+# splitting out merged data frame into test and train
+p = sample(1:nrow(train_s1), 7*nrow(train_s1)/10)
+# making a sample
+sub_train = train_s1[p, ]
+# sub train is now the training portion of our train set
+sub_test = train_s1[-p, ]
+# sub test is now the test portion of our train set
+
+```
+
+#### EDA Model 1:
+
+```{r}
+
+model1 = lm(logerror ~ taxamount +
+              calculatedbathnbr + 
+              yearbuilt, data = sub_test)
+
+summary(model1)  # look at summary for simple model
+
+```
+
+```{r}
+
+plot(model1)
+# a lot of violations in assumptions
+```
+Comments indicate many models were tried and only this one was kept:
+
+```{r m2, eval=FALSE, echo=FALSE, include=FALSE}
+## this model uses one or more fields from our data cleaning file.  It may have been created
+## before full cleaning code was developed but is re-run here using the output of zillow_clean_<date>.R
+
+model2 = lm(logerror ~ 
+              calculatedfinishedsquarefeet +
+              calculatedbathnbr + 
+              airconditioningtypeid +
+              buildingqualitytypeid +
+              garagetotalsqft + 
+              yearbuilt + 
+              fireplacecnt + 
+              unitcnt + 
+              regionidcity +
+              regionidzip + 
+              regionidcounty +
+              airconditioningtypeid +
+              bedroomcnt + 
+              lotsizesqft_imputed +
+              poolcnt +
+              decktypeid +
+              numberofstories +
+              basementsqft +
+              yardbuildingsqft17 + 
+              yardbuildingsqft26 +
+              garagecarcnt + 
+              taxdelinquencyflag +
+              heatingorsystemtypeid +
+              fullbathcnt +
+              taxamount,
+              data = sub_test)
+
+# this is where all of my tinkering was done. A lot of models were created 
+# here but I only included the final one 
+summary(model2)
+
+```
+
+```{r}
+## repeating same model to head off knitting issue
+model2 = lm(logerror ~ 
+              calculatedfinishedsquarefeet +
+              calculatedbathnbr + 
+              airconditioningtypeid +
+              buildingqualitytypeid +
+              garagetotalsqft + 
+              yearbuilt + 
+              fireplacecnt + 
+              unitcnt + 
+              regionidcity +
+              regionidzip + 
+              regionidcounty +
+              airconditioningtypeid +
+              bedroomcnt + 
+              lotsizesqft_imputed +
+              poolcnt +
+              decktypeid +
+              numberofstories +
+              basementsqft +
+              yardbuildingsqft17 + 
+              yardbuildingsqft26 +
+              garagecarcnt + 
+              taxdelinquencyflag +
+              heatingorsystemtypeid +
+              fullbathcnt +
+              taxamount,
+              data = sub_test)
+plot(model2)
+# some issues here with the assumptions (QQ plot is s shaped)
+
+```
+
+
+```{r}
+full_clean2 <- fread('clean_output_wDates.csv')  ## output from cleaning script: 2.3Million records (w and w/o logerror)
+train_s2 = full_clean2[!is.na(full_clean2$logerror), ]
+
+```
+```{r tstcell2, eval=FALSE, echo=FALSE}
+## quick test ... not output in markdown document
+head(train_s2)
+```
+
+
+```{r}
+## some experimenting done with this code ... only final experiment(s) shown
+
+x = train_s2 %>% select(calculatedfinishedsquarefeet, 
+                           calculatedbathnbr, 
+                           airconditioningtypeid, 
+                           buildingqualitytypeid, 
+                           garagetotalsqft, 
+                           yearbuilt, 
+                           fireplacecnt, 
+                           unitcnt, 
+                           regionidcity, 
+                           regionidzip, 
+                           regionidcounty, 
+                           airconditioningtypeid, 
+                           bedroomcnt, 
+                           lotsizesqft_imputed, 
+                           poolcnt, 
+                           decktypeid, 
+                           numberofstories, 
+                           basementsqft, 
+                           yardbuildingsqft17,  
+                           yardbuildingsqft26, 
+                           garagecarcnt, 
+                           taxdelinquencyflag, 
+                           heatingorsystemtypeid, 
+                           fullbathcnt, 
+                           taxamount, 
+                           # transactiondate,  # this field is not numeric
+                           logerror)
+x = x %>% select(-heatingorsystemtypeid, -fullbathcnt)
+x$numberofstories = as.numeric(x$numberofstories)
+x_whole = cor(x)
+x_cor = corrplot(x_whole, method="shade",shade.col=NA, tl.col="black", tl.srt=45)
+
+## code leading up to these plots
+x_pos = x[x$logerror > 0, ]
+x_neg = x[x$logerror < 0, ]
+x2_pos <- cor(x_pos,  use = "pairwise.complete.obs")
+x2_neg<- cor(x_neg,  use = "pairwise.complete.obs")
+
+x_cor_pos = corrplot(x2_pos, method="shade",shade.col=NA, tl.col="black", tl.srt=45)
+x_cor_neg = corrplot(x2_neg, method="shade",shade.col=NA, tl.col="black", tl.srt=45)
+# correlations - positive and negative differ from each other so slightly it is easy to miss it
+
+```
+
+```{r}
+
+
+
+```
+
+```{r}
+
+
+```
+
+
