@@ -59,6 +59,10 @@ sub_test = train_s1[-p, ]
 
 ```
 
+```{r}
+ggplot(train_s1) + geom_histogram(aes(logerror), bins = 30) 
+```
+
 
 ```{r}
 ## histogram on logerror
@@ -98,12 +102,27 @@ ggplot(data = data.frame(logerror_positive), aes(x = logerror_positive)) + geom_
 # looking at the positive vs negative logerror
 ```
 ```{r}
-
+full_clean <- full_clean %>% mutate(model_error = exp(logerror))
+summary(full_clean$logerror)
+summary(full_clean$model_error)
+train_e = full_clean[!is.na(full_clean$model_error), ]
 
 ```
 
 ```{r}
-## 
+ggplot(train_e) + geom_histogram(aes(model_error), bins = 120)  # started w/ 30 and increased granularity up to this point
+                                                                # lower than 30 was mostly just a fat central box
+## taking inverse of the log makes the distribution worse rather than better
+```
 
+```{r}
+full_clean <- full_clean %>% mutate(log_log_err = log(logerror)) # if inverse of log is worse, whatabout log of log?
+train_e = full_clean[!is.na(full_clean$log_log_err), ]
+ggplot(train_e) + geom_histogram(aes(log_log_err), bins = 120)
+
+```
+
+```{r}
+ggplot(train_e) + geom_histogram(aes(log_log_err), bins = 30)
 ```
 
