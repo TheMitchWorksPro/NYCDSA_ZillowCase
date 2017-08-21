@@ -9,8 +9,6 @@ full$logerror =NULL
 train_csv = fread('input/train_2016_v2.csv')
 full$fullbathcnt = as.integer(full$fullbathcnt)
 
-
-
 full$fips=as.factor(full$fips)
 full$latitude = as.numeric(full$latitude)
 full$longitude = as.numeric(full$longitude)
