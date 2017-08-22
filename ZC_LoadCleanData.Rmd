@@ -1,0 +1,102 @@
+---
+title: "Zillow Case Project - Starter Code 4"
+author: "TheMitchWorksPro"
+date: "8/17/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Code Testing for Data Cleaning
+Set this up to test ideas for cleaning the code
+
+```{r libSetup, warning=FALSE}
+## library list from here:
+# https://www.kaggle.com/philippsp/exploratory-analysis-zillow/notebook
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(DT)
+library(tidyr)
+library(corrplot)
+# library(leaflet)
+library(lubridate)
+
+## few more
+library(stringi)
+library(caret)    # also needed in connection w/ parallel processing
+
+```
+
+```{r}
+
+###### still experimenting with this ... crashed first few times tried it #######
+# # Setting Parallel processing
+library(doMC)
+library(parallel)
+logical_cores <- detectCores(logical=FALSE)
+number_of_cores <- detectCores()
+registerDoMC()  # default should be half the cores set by parallel package
+                # since options("cores") is currently NULL
+                # argument from Shu's code: registerDoMC(cores = number_of_cores/2)
+
+## further research:
+#     # http://blog.aicry.com/r-parallel-computing-in-5-minutes/
+
+logical_cores
+number_of_cores
+# [1] 4  
+# [1] 8
+
+```
+
+Load Data:
+
+```{r}
+
+## different varaints on cleaned data set:
+clean_TrainTest        <- fread('clean_TrainTest_output.csv')
+clean_TrainTest_wDates <- fread('clean_TrainTest_output_wDates.csv')
+clean_bigDat           <- fread('clean_output.csv')
+clean_bigDat_wDates    <- fread('clean_output_wDates.csv')
+
+```
+
+```{r}
+## target output
+target_output    <- fread('./input/sample_submission.csv')
+# notes:  heatingorsystemtypeid:  imputed NA as 'other' (I think) ... not binary yet, many values in it
+
+```
+
+```{r}
+head(target_output)
+```
+
+```{r}
+head(clean_TrainTest_wDates)
+```
+
+```{r}
+### how to create a simple test split ...
+
+set.seed(0)
+trainRecSetIndx = sample(1:nrow(clean_TrainTest_wDates), nrow(clean_TrainTest_wDates)*0.8)
+trainSet1 = clean_TrainTest_wDates[trainRecSetIndx, ]
+testSet1  = clean_TrainTest_wDates[-trainRecSetIndx, ]
+
+```
+
+
+
+
+
+ideas:  a multi-linear regression using the log of all the variables
+https://stats.stackexchange.com/questions/140713/making-predictions-with-log-log-regression-model
+https://stats.stackexchange.com/questions/14005/linear-regression-with-factors-in-r
+
+
